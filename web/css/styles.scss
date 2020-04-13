@@ -43,6 +43,14 @@ body {
   background: white;
   cursor: pointer;
   text-align: center;
+  position: relative;
+
+  & .cross {
+    position: absolute;
+    font-size: 7rem !important;
+    font-family: Arial;
+    color: rgba(255, 0, 0, 0.3);
+  }
 
   &:hover {
     background: #F0F0F0;

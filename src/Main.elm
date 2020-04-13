@@ -50,6 +50,11 @@ subscriptions _ =
         []
 
 
+defCell : ( String, Bool )
+defCell =
+    ( "★", False )
+
+
 
 -- MODEL
 
@@ -57,7 +62,7 @@ subscriptions _ =
 type alias Model =
     { width : Int
     , height : Int
-    , texts : Dict ( Int, Int ) String
+    , texts : Dict ( Int, Int ) ( String, Bool )
     }
 
 
@@ -67,7 +72,7 @@ type alias Flags =
 
 init : Flags -> Url -> Navigation.Key -> ( Model, Cmd Msg )
 init {} {} _ =
-    ( { width = 5, height = 5, texts = Dict.singleton ( 3, 3 ) "★" }, Cmd.none )
+    ( { width = 5, height = 5, texts = Dict.empty }, Cmd.none )
 
 
 
@@ -77,15 +82,19 @@ init {} {} _ =
 type Msg
     = Empty
     | EditCell ( Int, Int ) String
+    | Cross ( Int, Int )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         EditCell key txt ->
-            ( { model | texts = Dict.insert key txt model.texts }, Cmd.none )
+            ( { model | texts = Dict.update key (Maybe.withDefault defCell >> Tuple.mapFirst (always txt) >> Just) model.texts }, Cmd.none )
 
-        _ ->
+        Cross loc ->
+            ( { model | texts = Dict.update loc (Maybe.withDefault defCell >> Tuple.mapSecond not >> Just) model.texts }, Cmd.none )
+
+        Empty ->
             ( model, Cmd.none )
 
 
@@ -133,8 +142,8 @@ renderBingoCard editable { width, height, texts } =
                     List.map
                         (\col ->
                             let
-                                txt =
-                                    Maybe.withDefault "X" <| Dict.get ( row, col ) texts
+                                ( txt, crossed ) =
+                                    Maybe.withDefault defCell <| Dict.get ( row, col ) texts
                             in
                             (if editable then
                                 H.textarea
@@ -142,11 +151,26 @@ renderBingoCard editable { width, height, texts } =
                              else
                                 H.div
                             )
-                                [ A.class "cell"
-                                , A.style "font-size" (calcFontSize txt)
-                                , Events.onInput (EditCell ( row, col ))
+                                ([ A.class "cell"
+                                 , A.style "font-size" (calcFontSize txt)
+                                 , Events.onInput (EditCell ( row, col ))
+                                 ]
+                                    ++ (if not editable then
+                                            [ Events.onClick (Cross ( row, col )) ]
+
+                                        else
+                                            []
+                                       )
+                                )
+                                [ H.div [ A.class "cross" ]
+                                    (if crossed then
+                                        [ H.text "✗" ]
+
+                                     else
+                                        []
+                                    )
+                                , H.text txt
                                 ]
-                                [ H.text txt ]
                         )
                         (List.range 1 width)
                 )
