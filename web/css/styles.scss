@@ -1,0 +1,55 @@
+body {
+  font-family: "Helvetica Neue", Sans-Serif;
+}
+
+.card {
+  display: grid;
+  grid-template-rows: 100px 300px;
+}
+
+.cards {
+  display: flex;
+  flex-flow: row wrap;
+  justify-items: space-around;
+}
+
+.card-holder {
+  display: flex;
+  flex-flow: column nowrap;
+  grid-template-rows: 100px 300px;
+  background: #3397dc;
+  border: 10px solid #1a75bb;
+  padding: 10px;
+  margin: 20px auto;
+}
+
+.header {
+  font-family: Futura, Sans-Serif;
+  text-align: center;
+  color: #ecc751;
+}
+
+
+.cell {
+  display: block;
+  min-height: 20px;
+  min-width: 20px;
+  border: 1px solid #3397dc;
+  padding: 10px;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  cursor: pointer;
+  text-align: center;
+
+  &:hover {
+    background: #F0F0F0;
+  }
+}
+
+textarea {
+  outline: none;
+  resize: none;
+}

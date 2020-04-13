@@ -8,7 +8,11 @@ module Main exposing (..)
 
 import Browser
 import Browser.Navigation as Navigation
+import Debug
+import Dict exposing (Dict)
 import Html as H exposing (Html)
+import Html.Attributes as A
+import Html.Events as Events
 import Json.Decode as D
 import Json.Encode as E
 import Url exposing (Url)
@@ -18,12 +22,12 @@ import Url exposing (Url)
 -- MAIN
 
 
-main : Program Flags AppState Msg
+main : Program Flags Model Msg
 main =
     Browser.application
         { init = init
         , view = view
-        , update = updateApp
+        , update = update
         , subscriptions = subscriptions
         , onUrlRequest = onUrlRequest
         , onUrlChange = onUrlChange
@@ -40,7 +44,7 @@ onUrlChange {} =
     Empty
 
 
-subscriptions : AppState -> Sub Msg
+subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
         []
@@ -50,17 +54,20 @@ subscriptions _ =
 -- MODEL
 
 
-type alias AppState =
-    {}
+type alias Model =
+    { width : Int
+    , height : Int
+    , texts : Dict ( Int, Int ) String
+    }
 
 
 type alias Flags =
     {}
 
 
-init : Flags -> Url -> Navigation.Key -> ( AppState, Cmd Msg )
+init : Flags -> Url -> Navigation.Key -> ( Model, Cmd Msg )
 init {} {} _ =
-    ( {}, Cmd.none )
+    ( { width = 5, height = 5, texts = Dict.singleton ( 3, 3 ) "★" }, Cmd.none )
 
 
 
@@ -69,24 +76,103 @@ init {} {} _ =
 
 type Msg
     = Empty
+    | EditCell ( Int, Int ) String
 
 
-updateApp : Msg -> AppState -> ( AppState, Cmd Msg )
-updateApp msg state =
-    ( state, Cmd.none )
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
+    case msg of
+        EditCell key txt ->
+            ( { model | texts = Dict.insert key txt model.texts }, Cmd.none )
+
+        _ ->
+            ( model, Cmd.none )
 
 
 
 -- VIEW
 
 
-view : AppState -> Browser.Document Msg
+view : Model -> Browser.Document Msg
 view model =
     { title = "Bingo"
-    , body = [ renderApp model ]
+    , body = [ H.div [] [ renderApp model ] ]
     }
 
 
-renderApp : AppState -> H.Html Msg
-renderApp state =
-    H.div [] [ H.text "Bingo" ]
+renderApp : Model -> H.Html Msg
+renderApp ({ width } as model) =
+    H.div [ A.class "cards" ]
+        [ H.div
+            [ A.class "card-holder"
+            , A.style "width" ((String.fromInt <| width * 100) ++ "px")
+            ]
+            [ H.div []
+                [ H.h1 [ A.class "header" ] [ H.text "- BINGO -" ]
+                , renderBingoCard True model
+                ]
+            ]
+        , H.div
+            [ A.class "card-holder"
+            , A.style "width" ((String.fromInt <| width * 100) ++ "px")
+            ]
+            [ H.div []
+                [ H.h1 [ A.class "header" ] [ H.text "- BINGO -" ]
+                , renderBingoCard False model
+                ]
+            ]
+        ]
+
+
+renderBingoCard : Bool -> Model -> H.Html Msg
+renderBingoCard editable { width, height, texts } =
+    H.div ([ A.class "card" ] ++ buildCardStyles width height) <|
+        List.concat <|
+            List.map
+                (\row ->
+                    List.map
+                        (\col ->
+                            let
+                                txt =
+                                    Maybe.withDefault "X" <| Dict.get ( row, col ) texts
+                            in
+                            (if editable then
+                                H.textarea
+
+                             else
+                                H.div
+                            )
+                                [ A.class "cell"
+                                , A.style "font-size" (calcFontSize txt)
+                                , Events.onInput (EditCell ( row, col ))
+                                ]
+                                [ H.text txt ]
+                        )
+                        (List.range 1 width)
+                )
+                (List.range 1 height)
+
+
+buildCardStyles : Int -> Int -> List (H.Attribute m)
+buildCardStyles width height =
+    [ A.style "grid-template-columns" (String.join " " (List.repeat width "1fr"))
+    , A.style "grid-template-rows" (String.join " " (List.repeat height "1fr"))
+    , A.style "width" (String.fromInt (width * 100) ++ "px")
+    , A.style "height" (String.fromInt (height * 100) ++ "px")
+    ]
+
+
+
+-- Magical text sizing algorithm
+
+
+calcFontSize : String -> String
+calcFontSize txt =
+    let
+        txtSize =
+            toFloat <| String.length txt
+
+        calced =
+            22 / max (logBase 10 txtSize) 1
+    in
+    String.fromFloat calced ++ "px"
